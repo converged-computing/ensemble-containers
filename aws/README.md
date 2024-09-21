@@ -13,3 +13,4 @@ I am also taking greater care in designing the layers.
 | ghcr.io/converged-computing/ensemble-amg2023:libfabric  | [Dockerfile](amg2023/Dockerfile)     |
 | ghcr.io/converged-computing/ensemble-lammps:libfabric   | [Dockerfile](lammps/Dockerfile)      |
 | ghcr.io/converged-computing/ensemble-stream:libfabric   | [Dockerfile](stream/Dockerfile)      |
+| ghcr.io/converged-computing/ensemble-kripke:libfabric   | [Dockerfile](kripke/Dockerfile)      |
