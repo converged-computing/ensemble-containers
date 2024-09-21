@@ -1,9 +1,10 @@
 FROM ubuntu:22.04
 
 # Build command
-#  docker build -t ghcr.io/converged-computiong/ensemble-amg2023:libfabric .
-#  docker push ghcr.io/converged-computiong/ensemble-amg2023:libfabric
+#  docker build -t ghcr.io/converged-computiong/ensemble-lammps:libfabric .
+#  docker push ghcr.io/converged-computiong/ensemble-lammps:libfabric
 
+# Compilers, autotools
 ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && \
     apt-get -qq install -y --no-install-recommends \
@@ -56,26 +57,30 @@ RUN wget https://download.open-mpi.org/release/open-mpi/v4.1/openmpi-4.1.2.tar.g
     ./configure --with-ofi=/usr/local && \
     make -j 4 && make install && ldconfig
 
+# Finally, install oras for saving artifacts
 RUN export VERSION="1.1.0" && \
     curl -LO "https://github.com/oras-project/oras/releases/download/v${VERSION}/oras_${VERSION}_linux_amd64.tar.gz" && \
     mkdir -p oras-install/ && \
     tar -zxf oras_${VERSION}_*.tar.gz -C oras-install/ && \
     mv oras-install/oras /usr/local/bin/ && \
     rm -rf oras_${VERSION}_*.tar.gz oras-install/
-
 ENV PATH=/usr/local/pancakes/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 ENV LD_LIBRARY_PATH=/usr/local/pancakes/lib:/usr/local/lib
 
-# Clone hypre - note there is a message about --with-unified-memory
-RUN git clone --recursive https://github.com/hypre-space/hypre && \
-    cd hypre/src && \
-    ./configure --prefix=/usr/local/pancakes --enable-maxint && \
-    make -j && make install
+WORKDIR /opt
+RUN apt-get update && apt-get install -y cmake && apt-get clean && rm -rf /var/lib/apt/lists/*
+RUN mkdir lammps && \
+   cd lammps && \
+   git init && \
+   git remote add origin https://github.com/lammps/lammps.git && \
+   git fetch --depth 1 origin a8687b53724b630fb5f454c8d7be9f9370f8bb3b && \
+   git checkout FETCH_HEAD && \
+   mkdir build && \
+   cd build && \
+    cmake ../cmake -D PKG_REAXFF=yes -D BUILD_MPI=yes -D PKG_OPT=yes -D FFT=FFTW3 \
+    -D CMAKE_INSTALL_PREFIX=/usr \
+    && make && make install 
 
-RUN git clone --recursive https://github.com/LLNL/AMG2023 amg && \
-    cd amg && \ 
-    mpicc -O2 -DHAVE_CONFIG_H -I. -I/opt/hypre/src/hypre/include -I/usr/local/cuda/include    -DHYPRE_TIMING -c amg.c && \
-    mpic++ -o amg amg.o  -L/opt/hypre/src/hypre/lib -lHYPRE -Wl,-rpath,/opt/hypre/src/hypre/lib -lm -Wl,-rpath,/opt/hypre/src/hypre/lib && \
-    mv ./amg /usr/local/bin/amg
-
-EXPOSE 22
+WORKDIR /code
+RUN cp -R /opt/lammps/examples/reaxff/HNS/* /code/ && \
+    chown -R 1000 /code /opt/lammps
