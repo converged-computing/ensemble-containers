@@ -1,8 +1,8 @@
 FROM ubuntu:22.04
 
 # Build command
-#  docker build -t ghcr.io/converged-computing/ensemble-minife:libfabric .
-#  docker push ghcr.io/converged-computing/ensemble-minife:libfabric
+#  docker build -t ghcr.io/converged-computing/ensemble-mixbench:libfabric .
+#  docker push ghcr.io/converged-computing/ensemble-mixbench:libfabric
 
 # Compilers, autotools
 ENV DEBIAN_FRONTEND=noninteractive
@@ -68,15 +68,19 @@ ENV PATH=/usr/local/pancakes/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/b
 ENV LD_LIBRARY_PATH=/usr/local/pancakes/lib:/usr/local/lib
 
 WORKDIR /opt
-
-RUN mkdir minife && \
-    cd minife && \
+RUN apt-get update && apt-get install -y cmake && apt-get clean && rm -rf /var/lib/apt/lists/*
+RUN mkdir mixbench && \
+    cd mixbench && \
     git init && \
-    git remote add origin https://github.com/Mantevo/minife && \
-    git fetch --depth 1 origin abe328816d84afc319c482d6bc8df414b8f90d79 && \
-    git checkout FETCH_HEAD
+    git remote add origin https://github.com/ekondis/mixbench && \
+    git fetch --depth 1 origin 440a133a6423840ce613d1eaab43cd586effd389 && \
+    git checkout FETCH_HEAD && \
+    cd /opt/mixbench/mixbench-cpu && \
+    mkdir build && \
+    cd build && \
+    cmake ../ && \
+    cmake --build ./ && make && \
+    cp mixbench-cpu /usr/local/bin
 
-# We are adding this to be able to customize parameters moreso
-RUN cd /opt/minife/openmp/src && make && cp miniFE.x /usr/local/bin/miniFE.x
 EXPOSE 22
-WORKDIR /opt/minife
+WORKDIR /opt/mixbench
