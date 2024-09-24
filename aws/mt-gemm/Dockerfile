@@ -1,8 +1,8 @@
 FROM ubuntu:22.04
 
 # Build command
-#  docker build -t ghcr.io/converged-computing/ensemble-laghos:libfabric .
-#  docker push ghcr.io/converged-computing/ensemble-laghos:libfabric
+#  docker build -t ghcr.io/converged-computing/ensemble-mt-gemm:libfabric .
+#  docker push ghcr.io/converged-computing/ensemble-mt-gemm:libfabric
 
 # Compilers, autotools
 ENV DEBIAN_FRONTEND=noninteractive
@@ -64,43 +64,16 @@ RUN export VERSION="1.1.0" && \
     tar -zxf oras_${VERSION}_*.tar.gz -C oras-install/ && \
     mv oras-install/oras /usr/local/bin/ && \
     rm -rf oras_${VERSION}_*.tar.gz oras-install/
+
 ENV PATH=/usr/local/pancakes/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 ENV LD_LIBRARY_PATH=/usr/local/pancakes/lib:/usr/local/lib
 
 WORKDIR /opt
 
-ENV MAKE_CXX_FLAG="MPICXX=mpic++"
-
-# Install hypre
-RUN apt-get install -y libc6-dev && \
-    export hypre_options="--disable-fortran --without-fei --enable-bigint" && \
-    wget --no-verbose https://github.com/hypre-space/hypre/archive/v2.31.0.tar.gz && \
-    tar -xzf v2.31.0.tar.gz && \
-    mv hypre-2.31.0 hypre && \
-    cd hypre/src && \
-   ./configure ${hypre_options} CC=mpicc CXX=mpic++ && \
-    make -j 4
-
-# Metis
-RUN wget --no-verbose https://github.com/mfem/tpls/raw/gh-pages/metis-4.0.3.tar.gz && \
-    tar -xzf metis-4.0.3.tar.gz && \
-    mv metis-4.0.3 metis-4.0 && \
-    make -j 4 -C metis-4.0/Lib CC=mpicc OPTFLAGS="-Wno-error=implicit-function-declaration -O2"
-
-RUN wget https://github.com/mfem/mfem/archive/refs/tags/v4.7.tar.gz && \
-    tar -xzvf v4.7.tar.gz && \
-    mv mfem-4.7 /opt/mfem && \
-    cd /opt/mfem && \
-    unset LD_LIBRARY_PATH && \
-    make config MFEM_USE_MPI=YES MPICXX=mpiCC MFEM_MPI_NP=2 MFEM_DEBUG=${DEBUG} CPPFLAGS="${CPPFLAGS}" && \
-    make -j 4
-        
-WORKDIR /opt
-RUN wget https://github.com/CEED/Laghos/archive/refs/tags/v3.1.tar.gz && \ 
-    tar -xzvf v3.1.tar.gz && \
-    mv Laghos-3.1 /opt/laghos && \
-    cd /opt/laghos && \
-    make -j 4
-
-EXPOSE 22
-WORKDIR /opt/laghos
+RUN git clone https://repository.prace-ri.eu/git/CodeVault/hpc-kernels/dense_linear_algebra.git
+RUN apt-get update && apt-get install -y cmake && apt-get clean && rm -rf /var/lib/apt/lists/*
+COPY gemm_mpi.cpp /opt/dense_linear_algebra/gemm/mpi/src/
+RUN cd /opt/dense_linear_algebra/gemm/mpi && \
+    mkdir build && cd build && \
+    cmake ../ && make && make install
+WORKDIR /opt/dense_linear_algebra/gemm/mpi
