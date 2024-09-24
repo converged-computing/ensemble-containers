@@ -1,8 +1,8 @@
 FROM ubuntu:22.04
 
 # Build command
-#  docker build -t ghcr.io/converged-computiong/ensemble-amg2023:libfabric .
-#  docker push ghcr.io/converged-computiong/ensemble-amg2023:libfabric
+#  docker build -t ghcr.io/converged-computing/ensemble-amg2023:libfabric .
+#  docker push ghcr.io/converged-computing/ensemble-amg2023:libfabric
 
 ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && \
@@ -62,9 +62,18 @@ RUN export VERSION="1.1.0" && \
     tar -zxf oras_${VERSION}_*.tar.gz -C oras-install/ && \
     mv oras-install/oras /usr/local/bin/ && \
     rm -rf oras_${VERSION}_*.tar.gz oras-install/
-
 ENV PATH=/usr/local/pancakes/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 ENV LD_LIBRARY_PATH=/usr/local/pancakes/lib:/usr/local/lib
+
+RUN apt-get update && apt-get install -y openssh-client openssh-server cmake && apt-get clean
+RUN echo "        LogLevel ERROR" >> /etc/ssh/ssh_config && \
+    echo "        StrictHostKeyChecking no" >> /etc/ssh/ssh_config && \
+    echo "        UserKnownHostsFile=/dev/null" >> /etc/ssh/ssh_config && \
+    cd /root && \
+    mkdir -p /run/sshd && \
+    ssh-keygen -t rsa -N "" -f /root/.ssh/id_rsa && chmod og+rX . && \
+    cd .ssh && cat id_rsa.pub > authorized_keys && chmod 644 authorized_keys
+EXPOSE 22
 
 # Clone hypre - note there is a message about --with-unified-memory
 RUN git clone --recursive https://github.com/hypre-space/hypre && \
@@ -77,5 +86,3 @@ RUN git clone --recursive https://github.com/LLNL/AMG2023 amg && \
     mpicc -O2 -DHAVE_CONFIG_H -I. -I/opt/hypre/src/hypre/include -I/usr/local/cuda/include    -DHYPRE_TIMING -c amg.c && \
     mpic++ -o amg amg.o  -L/opt/hypre/src/hypre/lib -lHYPRE -Wl,-rpath,/opt/hypre/src/hypre/lib -lm -Wl,-rpath,/opt/hypre/src/hypre/lib && \
     mv ./amg /usr/local/bin/amg
-
-EXPOSE 22

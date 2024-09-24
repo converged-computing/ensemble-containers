@@ -67,6 +67,16 @@ RUN export VERSION="1.1.0" && \
 ENV PATH=/usr/local/pancakes/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 ENV LD_LIBRARY_PATH=/usr/local/pancakes/lib:/usr/local/lib
 
+RUN apt-get update && apt-get install -y openssh-client openssh-server cmake && apt-get clean
+RUN echo "        LogLevel ERROR" >> /etc/ssh/ssh_config && \
+    echo "        StrictHostKeyChecking no" >> /etc/ssh/ssh_config && \
+    echo "        UserKnownHostsFile=/dev/null" >> /etc/ssh/ssh_config && \
+    cd /root && \
+    mkdir -p /run/sshd && \
+    ssh-keygen -t rsa -N "" -f /root/.ssh/id_rsa && chmod og+rX . && \
+    cd .ssh && cat id_rsa.pub > authorized_keys && chmod 644 authorized_keys
+EXPOSE 22
+
 WORKDIR /opt
 
 ENV MAKE_CXX_FLAG="MPICXX=mpic++"
@@ -102,5 +112,4 @@ RUN wget https://github.com/CEED/Laghos/archive/refs/tags/v3.1.tar.gz && \
     cd /opt/laghos && \
     make -j 4
 
-EXPOSE 22
 WORKDIR /opt/laghos
