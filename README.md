@@ -29,8 +29,9 @@ For this first stage of work, I'm going to build a ton of containers. I am scopi
 ## Containers
 
 - [aws](aws): these are typically oriented to have libfabric.
+- [google](google): the same, but without libfabric
 
-All containers will also have oras for pushing and saving artifacts.
+All containers also have oras for pushing and saving artifacts.
 
 ## License
 

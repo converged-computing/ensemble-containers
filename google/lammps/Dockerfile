@@ -1,12 +1,10 @@
 FROM ubuntu:22.04
-ENV DEBIAN_FRONTEND=noninteractive
-
-FROM ubuntu:22.04
 
 # Build command
-#  docker build -t ghcr.io/converged-computing/ensemble-stream:libfabric .
-#  docker push ghcr.io/converged-computing/ensemble-stream:libfabric
+#  docker build -t ghcr.io/converged-computing/ensemble-lammps .
+#  docker push ghcr.io/converged-computing/ensemble-lammps
 
+# Compilers, autotools
 ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && \
     apt-get -qq install -y --no-install-recommends \
@@ -48,28 +46,45 @@ RUN locale-gen en_US.UTF-8
 ENV LANG=C.UTF-8
 
 WORKDIR /opt
-RUN git clone -b v1.21.1 https://github.com/ofiwg/libfabric.git /opt/libfabric && \
-    cd /opt/libfabric && ./autogen.sh && \
-    ./configure --enable-efa=yes --enable-tcp=yes --enable-udp=yes --enable-sockets=yes --enable-verbs=yes --enable-shm=yes --enable-mrail=yes --enable-rxd=yes --enable-rxm=yes && \
-    make -j 4 && make install
-
 RUN wget https://download.open-mpi.org/release/open-mpi/v4.1/openmpi-4.1.2.tar.gz && \
     tar -xzvf openmpi-4.1.2.tar.gz && \
     cd openmpi-4.1.2 && \
-    ./configure --with-ofi=/usr/local && \
+    ./configure && \
     make -j 4 && make install && ldconfig
 
+# Finally, install oras for saving artifacts
 RUN export VERSION="1.1.0" && \
     curl -LO "https://github.com/oras-project/oras/releases/download/v${VERSION}/oras_${VERSION}_linux_amd64.tar.gz" && \
     mkdir -p oras-install/ && \
     tar -zxf oras_${VERSION}_*.tar.gz -C oras-install/ && \
     mv oras-install/oras /usr/local/bin/ && \
     rm -rf oras_${VERSION}_*.tar.gz oras-install/
-
 ENV PATH=/usr/local/pancakes/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 ENV LD_LIBRARY_PATH=/usr/local/pancakes/lib:/usr/local/lib
 
-WORKDIR /opt/stream
-COPY ./src .
-RUN apt-get install -y gfortran && \
-    make && cp stream_c.exe /usr/local/bin && cp stream_f.exe /usr/local/bin
+RUN apt-get update && apt-get install -y openssh-client openssh-server cmake && apt-get clean
+RUN echo "        LogLevel ERROR" >> /etc/ssh/ssh_config && \
+    echo "        StrictHostKeyChecking no" >> /etc/ssh/ssh_config && \
+    echo "        UserKnownHostsFile=/dev/null" >> /etc/ssh/ssh_config && \
+    cd /root && \
+    mkdir -p /run/sshd && \
+    ssh-keygen -t rsa -N "" -f /root/.ssh/id_rsa && chmod og+rX . && \
+    cd .ssh && cat id_rsa.pub > authorized_keys && chmod 644 authorized_keys
+EXPOSE 22
+
+WORKDIR /opt
+RUN mkdir lammps && \
+   cd lammps && \
+   git init && \
+   git remote add origin https://github.com/lammps/lammps.git && \
+   git fetch --depth 1 origin a8687b53724b630fb5f454c8d7be9f9370f8bb3b && \
+   git checkout FETCH_HEAD && \
+   mkdir build && \
+   cd build && \
+    cmake ../cmake -D PKG_REAXFF=yes -D BUILD_MPI=yes -D PKG_OPT=yes -D FFT=FFTW3 \
+    -D CMAKE_INSTALL_PREFIX=/usr \
+    && make && make install 
+
+WORKDIR /code
+RUN cp -R /opt/lammps/examples/reaxff/HNS/* /code/ && \
+    chown -R 1000 /code /opt/lammps
