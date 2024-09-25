@@ -24,7 +24,7 @@ The new thinking is that we then want to take what we know and have learned for 
 2. Not worry about integration between a container and the host, the container is the host
 3. Have Flux added on the fly.
 
-For this first stage of work, I'm going to build a ton of containers. I'm then going to understand the patterns of the applications inside under a particular set of conditions. I'll then go back to the ensemble operator and create a tool that generates the ensembles (the full experiments) to be orchestrated with Flux via the Flux Operator, which is already implemented for the operator. I need to rethink how the operator works with the Flux MiniCluster - right now there is an associated Python module that gets paired, but maybe we can do better. I'd like to also add an ability for the operator to complete the runs, save the output and events, and then push and clean up.
+For this first stage of work, I'm going to build a ton of containers. I am scoping to CPU because obtaining and funding GPU in the cloud is nontrivial. I'm then going to understand the patterns of the applications inside under a particular set of conditions. I'll then go back to the ensemble operator and create a tool that generates the ensembles (the full experiments) to be orchestrated with Flux via the Flux Operator, which is already implemented for the operator. I need to rethink how the operator works with the Flux MiniCluster - right now there is an associated Python module that gets paired, but maybe we can do better. I'd like to also add an ability for the operator to complete the runs, save the output and events, and then push and clean up.
 
 ## Containers
 
