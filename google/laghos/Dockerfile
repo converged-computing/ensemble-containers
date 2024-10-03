@@ -1,8 +1,8 @@
 FROM ubuntu:22.04
 
 # Build command
-#  docker build -t ghcr.io/converged-computing/ensemble-laghos:libfabric .
-#  docker push ghcr.io/converged-computing/ensemble-laghos:libfabric
+#  docker build -t ghcr.io/converged-computing/ensemble-laghos .
+#  docker push ghcr.io/converged-computing/ensemble-laghos
 
 # Compilers, autotools
 ENV DEBIAN_FRONTEND=noninteractive
@@ -46,15 +46,10 @@ RUN locale-gen en_US.UTF-8
 ENV LANG=C.UTF-8
 
 WORKDIR /opt
-RUN git clone -b v1.21.1 https://github.com/ofiwg/libfabric.git /opt/libfabric && \
-    cd /opt/libfabric && ./autogen.sh && \
-    ./configure --enable-efa=yes --enable-tcp=yes --enable-udp=yes --enable-sockets=yes --enable-verbs=yes --enable-shm=yes --enable-mrail=yes --enable-rxd=yes --enable-rxm=yes && \
-    make -j 4 && make install
-
 RUN wget https://download.open-mpi.org/release/open-mpi/v4.1/openmpi-4.1.2.tar.gz && \
     tar -xzvf openmpi-4.1.2.tar.gz && \
     cd openmpi-4.1.2 && \
-    ./configure --with-ofi=/usr/local && \
+    ./configure && \
     make -j 4 && make install && ldconfig
 
 # Finally, install oras for saving artifacts
