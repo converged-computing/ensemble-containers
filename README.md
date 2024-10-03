@@ -1,5 +1,7 @@
 # Ensemble Containers
 
+[![DOI](https://zenodo.org/badge/860794955.svg)](https://doi.org/10.5281/zenodo.13887339)
+
 We have been using the [metrics operator](https://github.com/converged-computing/metrics-operator) typically as a means to run experiments, or different apps in Kubernetes. It is designed to take as input the application name and parameters, and provide output to logs in a way that is parse-able via the log file and a custom Python module. For another project, the [ensemble-operator](https://github.com/converged-computing/ensemble-operator) we can define ensembles of work, and then rules (algorithms) for autoscaling. This is an OK approach, but I want more. Specifically:
 
 - a collection of apps that can be orchestrated and controlled to simulate a larger study
